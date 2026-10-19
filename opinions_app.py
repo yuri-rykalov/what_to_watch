@@ -1,3 +1,6 @@
+import click
+import csv
+
 from datetime import datetime
 from random import randrange
 
@@ -27,7 +30,7 @@ class Opinion(db.Model):
     source = db.Column(db.String(256))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     added_by = db.Column(db.String(64))
-    
+
 
 
 # Класс формы должен быть описан сразу после модели Opinion.
@@ -115,6 +118,27 @@ def page_not_found(error):
     # При ошибке 404 в качестве ответа вернётся страница, созданная
     # на основе шаблона 404.html и код HTTP-ответа 404.
     return render_template('404.html'), 404
+
+
+# Добавим функцию для чтения CSV-файлов
+@app.cli.command('load_opinions')
+def load_opinions_command():
+    """Функция загрузки мнений в БД из CSV-файла."""
+    with open('opinions.csv', encoding='utf-8') as f:
+        # Создать итерируемый объект, который отображает каждую строку
+        # в качестве словаря с ключами из шапки файла.
+        reader = csv.DictReader(f)
+        # Добавить счетчик для посчета строк.
+        counter = 0
+        for row in reader:
+            # Распакованный словарь использовать
+            # для создания экземпляра модели Opinion.
+            opinion = Opinion(**row)
+            db.session.add(opinion)
+            db.session.commit()
+            counter += 1
+    click.echo(f'Загружено мнений: {counter}')
+
 
 if __name__ == '__main__':
     app.run()
